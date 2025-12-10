@@ -9,6 +9,27 @@ This package depends on the **[diffused_fields](https://github.com/idiap/diffuse
 
 ## Installation
 
+## Large files (Git LFS required)
+
+This repository uses [Git LFS](https://git-lfs.github.com/) to store large files
+(e.g. data, models, point clouds).
+
+### 1. Before cloning
+
+Make sure Git LFS is installed **before** you clone. You can skip this step if you already have it installed and activated in your machine.
+
+Install Git LFS (Ubuntu)
+```bash
+sudo apt install git-lfs
+```
+Install Git LFS (macOS) using homebrew
+```bash
+brew install git-lfs
+```
+run once to enable LFS
+```bash
+git lfs install 
+```
 This package depends on the `diffused_fields` library. First clone both repositories:
 
 ```bash
