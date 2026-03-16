@@ -6,12 +6,14 @@ This file is part of diffused_fields_robotics.
 Licensed under the MIT License. See LICENSE file in the project root.
 """
 
+import copy
 import os
 import pickle
 from datetime import datetime
 
 import numpy as np
 import yaml
+from scipy.spatial.transform import Rotation as R
 from diffused_fields import PointcloudScalarDiffusion, WalkOnSpheresDiffusion
 from diffused_fields.visualization.plotting_ps import *
 
@@ -236,7 +238,19 @@ class pcloudActionPrimitives(object):
             self.x_arr.append(x_next)
             self.trajectory_local_bases.append(local_basis)
 
-    def visualize_trajectory(self, show_tool=False, num_samples=None):
+    def _tool_vertices_at_pose(self, mesh, position, orientation):
+        """Compute tool mesh vertices at a single pose (for animation export)."""
+        mesh_c = copy.deepcopy(mesh.mesh)
+        target_pos = position + mesh.center_offset
+        mesh_c.translate(target_pos, relative=False)
+        rot = (
+            orientation
+            @ R.from_euler("xyz", [0, 0, 0], degrees=False).as_matrix()
+        )
+        mesh_c.rotate(rot, center=mesh_c.get_center() - mesh.center_offset)
+        return np.asarray(mesh_c.vertices)
+
+    def visualize_trajectory(self, show_tool=False, num_samples=None, save_animation=None):
         # Store visualization parameters for later use
         self.visualization_num_samples = num_samples
 
@@ -315,10 +329,15 @@ class pcloudActionPrimitives(object):
 
         if show_tool:
             tool_mesh = import_tool_mesh(self.tool)
-            if num_samples == None:
+            if num_samples is None or save_animation is not None:
                 indices = np.linspace(
                     0, len(self.trajectory) - 1, len(self.trajectory) - 1, dtype=int
                 )
+                if save_animation is not None:
+                    max_frames = 80
+                    indices = np.linspace(
+                        0, len(self.trajectory) - 1, min(max_frames, len(indices)), dtype=int
+                    )
             else:
                 # Create evenly spaced indices but exclude first and last
                 # Add 2 to num_samples to account for endpoints we'll exclude
@@ -330,6 +349,51 @@ class pcloudActionPrimitives(object):
             downsampled_trajectory = self.trajectory[indices]
             downsampled_trajectory_local_bases = self.trajectory_local_bases[indices]
 
+            if save_animation is not None:
+                # Export animation to GIF (no window show)
+                orients = -downsampled_trajectory_local_bases
+                verts0 = self._tool_vertices_at_pose(
+                    tool_mesh,
+                    downsampled_trajectory[0],
+                    orients[0],
+                )
+                faces = np.asarray(tool_mesh.mesh.triangles)
+                ps_tool = ps.register_surface_mesh(
+                    "moving mesh",
+                    verts0,
+                    faces,
+                    transparency=1.0,
+                    color=[125, 125, 125],
+                )
+                # Set camera: look at scene center from side-above angle
+                scene_center = np.mean(
+                    np.vstack((self.trajectory, self.pcloud.vertices)), axis=0
+                )
+                scene_scale = 0.8
+                camera_offset = np.array([0.2, -0.1, -0.3]) * scene_scale
+                ps.look_at(
+                    (scene_center + camera_offset).tolist(),
+                    scene_center.tolist(),
+                )
+                frames = []
+                for i in range(len(downsampled_trajectory)):
+                    v = self._tool_vertices_at_pose(
+                        tool_mesh,
+                        downsampled_trajectory[i],
+                        orients[i],
+                    )
+                    ps_tool.update_vertex_positions(v)
+                    img = ps.screenshot_to_buffer(transparent_bg=False, vertical_flip=True)
+                    frames.append(img)
+                try:
+                    import imageio
+                    # imageio expects (H,W,C); screenshot is (H,W,4) or (H,W,3)
+                    duration = 0.08
+                    imageio.mimwrite(save_animation, frames, duration=duration, loop=0)
+                    print(f"Animation saved to {save_animation}")
+                except ImportError:
+                    print("Install imageio to export GIF: pip install imageio")
+                return
             if num_samples is None:
                 animate_tool_trajectory(
                     downsampled_trajectory,

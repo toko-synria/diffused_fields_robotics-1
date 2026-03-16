@@ -63,9 +63,13 @@ If you use this package in your research, please cite: (Coming soon)
 ```bash
 # Run slicing on a banana
 python scripts/slicing.py
+# With interactive animation:  python scripts/slicing.py --animate
+# Export to GIF:               python scripts/slicing.py --save-gif slicing.gif
 
 # Run peeling on a pear
 python scripts/peeling.py
+# With interactive animation:  python scripts/peeling.py --animate
+# Export to GIF:               python scripts/peeling.py --save-gif peeling.gif
 
 # Run coverage on a surface
 python scripts/coverage.py

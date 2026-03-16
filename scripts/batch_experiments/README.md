@@ -18,9 +18,16 @@ Runs peeling experiments with random point cloud deformations (scaling, bending,
 
 **Usage:**
 ```bash
+# Run all experiments and save results
 python scripts/batch_experiments/batch_peeling.py
+
+# Run and visualize one specific experiment (e.g. exp_idx=0, sample_idx=0)
+python scripts/batch_experiments/batch_peeling.py --animate-exp 0 --animate-sample 0
+
+# Run and export a GIF for a specific experiment
+python scripts/batch_experiments/batch_peeling.py --animate-exp 0 --save-gif peeling_batch_exp0.gif
 ```
-Outputs a pickled experiment results file
+Outputs a pickled experiment results file and, if requested, an animation or GIF for the selected experiment.
 
 **Analysis:**
 Compare the results in terms of trajectory statistics:

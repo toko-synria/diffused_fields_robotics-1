@@ -16,6 +16,7 @@ dependencies = [
     "pyyaml",
     "stable-baselines3",
     "diffused_fields>=0.1,<0.3",
+    "imageio",
 ]
 
 [tool.setuptools.packages.find]
