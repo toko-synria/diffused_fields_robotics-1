@@ -16,3 +16,4 @@ __pycache__/
 .claude/
 MUJOCO_LOG.TXT
 df/
+*.gif

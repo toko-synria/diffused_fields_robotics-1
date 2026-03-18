@@ -1,5 +1,8 @@
 """Batch peeling experiments with point cloud deformations."""
 
+import argparse
+import os
+
 import numpy as np
 from diffused_fields.manifold import Pointcloud
 
@@ -17,6 +20,9 @@ class BatchPeeling(BatchPeelingBase):
         self,
         bend_strength_range=(-3.0, 3.0),
         twist_strength_range=(-3.0, 3.0),
+        animate_exp_idx=None,
+        animate_sample_idx=0,
+        save_gif_path=None,
     ):
         """
         Initialize batch peeling with deformation parameters.
@@ -24,6 +30,9 @@ class BatchPeeling(BatchPeelingBase):
         Args:
             bend_strength_range: (min, max) range for random bending curvature
             twist_strength_range: (min, max) range for random twist strength
+            animate_exp_idx: which experiment index to visualize (0-based). If None, no animation.
+            animate_sample_idx: which sample index to visualize (default: 0)
+            save_gif_path: if not None, export selected experiment as GIF to this path
         """
         super().__init__(
             filename="pear.ply",
@@ -33,8 +42,11 @@ class BatchPeeling(BatchPeelingBase):
         )
         self.bend_strength_range = bend_strength_range
         self.twist_strength_range = twist_strength_range
+        self.animate_exp_idx = animate_exp_idx
+        self.animate_sample_idx = animate_sample_idx
+        self.save_gif_path = save_gif_path
 
-    def run_peeling_experiment(self, exp_idx: int, seed: int) -> dict:
+    def run_peeling_experiment(self, exp_idx: int, sample_idx: int) -> dict:
         """Run a single peeling experiment with random pointcloud deformations."""
         print(f"\n{'='*80}")
         print(f"Running Peeling Experiment {exp_idx + 1}/{self.num_experiments}")
@@ -88,6 +100,31 @@ class BatchPeeling(BatchPeelingBase):
 
         # Run experiment
         controller.run()
+
+        # Optional: visualize or export GIF for selected experiment/sample
+        should_animate = (
+            self.animate_exp_idx is not None
+            and exp_idx == self.animate_exp_idx
+            and sample_idx == self.animate_sample_idx
+        )
+        # If no specific experiment is requested but save_gif_path is set,
+        # export GIFs for all experiments with index suffix.
+        export_all_gifs = self.animate_exp_idx is None and self.save_gif_path
+
+        if should_animate or export_all_gifs:
+            if self.save_gif_path:
+                base, ext = os.path.splitext(self.save_gif_path)
+                if export_all_gifs:
+                    gif_path = f"{base}_{exp_idx}{ext or '.gif'}"
+                else:
+                    gif_path = self.save_gif_path
+                controller.visualize_trajectory(
+                    show_tool=True,
+                    num_samples=None,
+                    save_animation=gif_path,
+                )
+            else:
+                controller.visualize_trajectory(show_tool=True, num_samples=None)
 
         #  w.r.t. World frame
         trajectory = controller.trajectory
@@ -169,8 +206,38 @@ class BatchPeeling(BatchPeelingBase):
 
 def main():
     """Main execution function."""
+    parser = argparse.ArgumentParser(
+        description=(
+            "Batch peeling with random deformations.\n"
+            "Optionally visualize or export GIF for a selected experiment."
+        )
+    )
+    parser.add_argument(
+        "--animate-exp",
+        type=int,
+        default=None,
+        help="Experiment index (0-based) to visualize with animation.",
+    )
+    parser.add_argument(
+        "--animate-sample",
+        type=int,
+        default=0,
+        help="Sample index (0-based) within the experiment to visualize (default: 0).",
+    )
+    parser.add_argument(
+        "--save-gif",
+        metavar="PATH",
+        default=None,
+        help="If set, export the selected experiment as a GIF to this path.",
+    )
+    args = parser.parse_args()
+
     # Create and run batch experiment
-    batch_processor = BatchPeeling()
+    batch_processor = BatchPeeling(
+        animate_exp_idx=args.animate_exp,
+        animate_sample_idx=args.animate_sample,
+        save_gif_path=args.save_gif,
+    )
 
     # Run all experiments with automatic progress tracking and saving
     results = batch_processor.run_experiment_loop(
