@@ -45,8 +45,8 @@ print("Loading point cloud and setting up diffusion...")
 pcloud = Pointcloud(filename=filename)
 
 # Select random target vertex on the point cloud
-# random_vertex = np.random.randint(0, len(pcloud.vertices))
-random_vertex = 3394  # for paper
+random_vertex = np.random.randint(0, len(pcloud.vertices))
+# random_vertex = 3394  # for paper
 source_vertices = np.array([random_vertex])
 
 # Setup scalar diffusion for the point cloud
